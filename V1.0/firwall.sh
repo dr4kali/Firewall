@@ -1,17 +1,13 @@
 #!/bin/bash
 
-# Set up iptables rules for NFQUEUE
+# Setting up iptables for NFQUEUE
 sudo iptables -I INPUT -j NFQUEUE --queue-num 0
 sudo iptables -I FORWARD -j NFQUEUE --queue-num 0
 sudo iptables -I OUTPUT -j NFQUEUE --queue-num 0
 
-# Start the Python firewall script in the background
-sudo python3 firewall.py &  # Run the firewall in the background
+sudo python firewall.py
 
-LOG_FILE="firewall_log.txt"  # Define the log file location (should match the Python script's logging)
-
-# Function to handle the firewall operations
-firewall(){
+firewall() {
     while true; do
         echo "Select an Operation"
         echo "1. Add or Remove Firewall Rules"
@@ -19,38 +15,33 @@ firewall(){
         echo "3. View Logs in Real-Time"
         echo "4. Exit"
         read -p "Enter the number: " op
-        
+
         case $op in
             1)
-                # Open the firewall rules file in vim to add or remove rules
-                sudo vim firewall_rules.txt
+                vim firewall_rules.txt
                 ;;
             2)
-                # Stop the firewall by killing the Python process and flushing iptables
                 echo "Stopping the firewall..."
-                sudo pkill -f firewall.py
-                sudo iptables -F  # Flush all iptables rules
-                echo "Firewall stopped."
-                break
+                sudo iptables -D INPUT -j NFQUEUE --queue-num 0
+                sudo iptables -D FORWARD -j NFQUEUE --queue-num 0
+                sudo iptables -D OUTPUT -j NFQUEUE --queue-num 0
+                exit 0
                 ;;
             3)
-                # Display the logs in real-time and trap the Ctrl+C signal to return to the menu
                 echo "Displaying logs in real-time. Press Ctrl+C to return to the menu."
-                trap '' SIGINT  # Ignore Ctrl+C signal while tailing logs
-                sudo tail -f "$LOG_FILE"  # View logs in real-time
-                trap - SIGINT  # Restore Ctrl+C signal handling after tail is done
+                sudo tail -f /var/log/firewall.log &  # Display logs in a background process
+                LOG_PID=$!  # Capture the process ID
+                trap "kill $LOG_PID" SIGINT  # Ensure the log process is stopped when Ctrl+C is pressed
+                wait $LOG_PID  # Wait for the log process to finish
                 ;;
             4)
-                # Exit the script without stopping the firewall
-                echo "Exiting without stopping the firewall."
-                break
+                exit 0
                 ;;
             *)
-                echo "Invalid option selected. Please try again."
+                echo "Invalid option, please try again."
                 ;;
         esac
     done
 }
 
-# Start the firewall function to manage the rules or stop it
 firewall

@@ -6,15 +6,11 @@ import netfilterqueue
 
 import scapy.all as scapy
 
-
-
 # File that contains firewall rules
 
 RULES_FILE = "firewall_rules.txt"
 
 LOG_FILE = "firewall_log.txt"
-
-
 
 # Load rules from the file
 
@@ -52,8 +48,6 @@ def load_rules():
 
     return rules
 
-
-
 # Log network activity
 
 def log_packet(packet, action):
@@ -61,8 +55,6 @@ def log_packet(packet, action):
     with open(LOG_FILE, "a") as log_file:
 
         log_file.write(f"{time.ctime()}: {action} packet {packet}\n")
-
-
 
 # Check if the packet matches the rules
 
@@ -75,8 +67,6 @@ def packet_matches(packet, rules):
         scapy_pkt = scapy.IP(ip_packet)  # Convert to Scapy format
 
         proto = None
-
-
 
         if scapy_pkt.proto == 6:  # TCP
 
@@ -104,8 +94,6 @@ def packet_matches(packet, rules):
 
             return False
 
-
-
         for rule in rules:
 
             if rule["src_ip"] == scapy_pkt.src and rule["dst_ip"] == scapy_pkt.dst:
@@ -120,27 +108,19 @@ def packet_matches(packet, rules):
 
                         return True
 
-
-
     except Exception as e:
 
         log_packet(packet, f"Error processing packet: {e}")
 
         return False
 
-
-
     return False
-
-
 
 # Callback function to process the packets
 
 def process_packet(packet):
 
     rules = load_rules()
-
-
 
     if packet_matches(packet, rules):
 
@@ -153,8 +133,6 @@ def process_packet(packet):
         log_packet(packet, "Allowed")
 
         packet.accept()
-
-
 
 # Set up the Netfilter Queue
 
@@ -179,6 +157,3 @@ def setup_queue():
 if __name__ == "__main__":
 
     setup_queue()
-
-
-
