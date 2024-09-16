@@ -26,10 +26,33 @@ def load_rules():
                 rules.append(rule_dict)
     return rules
 
-# Log network activity
+# Log network activity with detailed packet information
 def log_packet(packet, action):
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write(f"{time.ctime()}: {action} packet {packet}\n")
+    try:
+        ip_packet = packet.get_payload()  # Extract raw packet
+        scapy_pkt = scapy.IP(ip_packet)  # Convert to Scapy format
+        proto = None
+        packet_info = ""
+
+        if scapy_pkt.proto == 6:  # TCP
+            proto = "TCP"
+            packet_info = f"{proto} {scapy_pkt.src}:{scapy_pkt[scapy.TCP].sport} -> {scapy_pkt.dst}:{scapy_pkt[scapy.TCP].dport}"
+        elif scapy_pkt.proto == 17:  # UDP
+            proto = "UDP"
+            packet_info = f"{proto} {scapy_pkt.src}:{scapy_pkt[scapy.UDP].sport} -> {scapy_pkt.dst}:{scapy_pkt[scapy.UDP].dport}"
+        elif scapy_pkt.proto == 1:  # ICMP
+            proto = "ICMP"
+            packet_info = f"{proto} {scapy_pkt.src} -> {scapy_pkt.dst} (type: {scapy_pkt[scapy.ICMP].type})"
+        else:
+            packet_info = f"Unknown protocol {scapy_pkt.proto}"
+
+        log_entry = f"{time.ctime()}: {action} {packet_info}, {len(ip_packet)} bytes"
+
+        with open(LOG_FILE, "a") as log_file:
+            log_file.write(log_entry + "\n")
+    except Exception as e:
+        with open(LOG_FILE, "a") as log_file:
+            log_file.write(f"{time.ctime()}: Error logging packet: {e}\n")
 
 # Check if the packet matches the rules
 def packet_matches(packet, rules):
