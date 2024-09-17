@@ -2,6 +2,36 @@ import os
 import subprocess
 import time
 
+# File to store the VPN config path
+VPN_CONFIG_FILE = "vpn_config.txt"
+
+# Function to save the VPN path
+def save_vpn_path(vpn_path):
+    with open(VPN_CONFIG_FILE, "w") as config_file:
+        config_file.write(vpn_path)
+
+# Function to load the VPN path
+def load_vpn_path():
+    if os.path.exists(VPN_CONFIG_FILE):
+        with open(VPN_CONFIG_FILE, "r") as config_file:
+            return config_file.read().strip()
+    return None
+
+# Function to get the VPN path from the user
+def get_vpn_path():
+    vpn_path = load_vpn_path()
+    if vpn_path and os.path.exists(vpn_path):
+        print(f"Using VPN file from saved configuration: {vpn_path}")
+        return vpn_path
+    else:
+        vpn_path = input("Please provide the correct path to your .ovpn file: ").strip()
+        if os.path.exists(vpn_path):
+            save_vpn_path(vpn_path)
+            return vpn_path
+        else:
+            print("ERROR: OVPN file not found!")
+            return get_vpn_path()
+
 # Check if OpenVPN is running
 def check_vpn():
     try:
@@ -13,18 +43,20 @@ def check_vpn():
 
 # Start OpenVPN
 def start_vpn():
+    vpn_path = get_vpn_path()
+
     print("Starting OpenVPN...")
     # Use Popen with `nohup` to start OpenVPN in the background and redirect output
     process = subprocess.Popen(
-        ["nohup", "sudo", "openvpn", "--config", "/home/dr4kali/Downloads/lab_dr4kali.ovpn"],
+        ["nohup", "sudo", "openvpn", "--config", vpn_path],
         stdout=open("/dev/null", "w"),  # Redirect output to /dev/null to fully detach
         stderr=open("/dev/null", "w"),  # Redirect error to /dev/null to avoid output hanging
         preexec_fn=os.setpgrp  # This fully detaches the process so it doesn’t block the script
     )
-    
+
     # Give OpenVPN time to initialize
     time.sleep(5)
-    
+
     # Check if OpenVPN started successfully
     if check_vpn():
         print("VPN started successfully.")
