@@ -1,0 +1,2 @@
+src_ip: 10.0.2.15, dst_ip: 142.251.32.46, protocol: tcp, dst_port: 80
+src_ip: 10.0.2.15, dst_ip: 8.8.8.8, protocol: icmp, dst_port: -
