@@ -1,8 +1,8 @@
 import os
 import time
+import netfilterqueue
 import dpkt
 import socket
-import netfilterqueue
 from concurrent.futures import ThreadPoolExecutor
 
 # File paths for firewall rules and log files
@@ -27,7 +27,7 @@ def log_packet(packet_info_list):
         log_file.write("\n".join(packet_info_list) + "\n")
 
 # Generate packet log information
-def generate_log_entry(packet, action, src_ip, dst_ip, proto, sport, dport):
+def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
     try:
         if proto == "TCP":
             info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
@@ -38,11 +38,11 @@ def generate_log_entry(packet, action, src_ip, dst_ip, proto, sport, dport):
         else:
             info = f"Unknown protocol {proto}"
 
-        return f"{time.ctime()}: {action} {info}, {len(packet.get_payload())} bytes"
+        return f"{time.ctime()}: {action} {info}"
     except Exception as e:
         return f"{time.ctime()}: Error logging packet: {e}"
 
-# Check if the packet matches the rules (optimized for clarity and efficiency)
+# Check if the packet matches the rules
 def packet_matches(src_ip, dst_ip, proto, dport, rules):
     for rule in rules:
         if rule["src_ip"] == src_ip and rule["dst_ip"] == dst_ip and rule["protocol"] == proto:
@@ -53,8 +53,8 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
     return False
 
 # Extract packet details using dpkt
-def extract_packet_details(packet):
-    ip_packet = dpkt.ip.IP(packet.get_payload())  # Convert raw packet to dpkt IP object
+def extract_packet_details(packet_data):
+    ip_packet = dpkt.ip.IP(packet_data)  # Convert raw packet to dpkt IP object
     src_ip = socket.inet_ntoa(ip_packet.src)
     dst_ip = socket.inet_ntoa(ip_packet.dst)
     proto = None
@@ -76,29 +76,30 @@ def extract_packet_details(packet):
     return src_ip, dst_ip, proto, sport, dport
 
 # Process packet logic (to be run in parallel threads)
-def process_packet_logic(packet, rules):
+def process_packet_logic(packet, packet_data, rules):
     try:
         # Extract packet details using dpkt
-        src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet)
+        src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
 
         log_entries = []
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
-            log_entries.append(generate_log_entry(packet, "Blocked", src_ip, dst_ip, proto.upper(), sport, dport))
+            log_entries.append(generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked"))
             packet.drop()  # Block packet
         else:
-            log_entries.append(generate_log_entry(packet, "Allowed", src_ip, dst_ip, proto.upper(), sport, dport))
             packet.accept()  # Allow packet
 
-        # Log all actions
-        log_packet(log_entries)
+        # Log only blocked packets
+        if log_entries:
+            log_packet(log_entries)
     except Exception as e:
         log_packet([f"{time.ctime()}: Error processing packet: {e}"])
         packet.accept()  # In case of error, allow the packet
 
 # Callback function to process packets (parallelized)
 def process_packet(packet, rules, executor):
+    packet_data = packet.get_payload()
     # Submit packet processing to the thread pool for parallel execution
-    executor.submit(process_packet_logic, packet, rules)
+    executor.submit(process_packet_logic, packet, packet_data, rules)
 
 # Set up the Netfilter Queue and bind processing function (preloads rules)
 def setup_queue():
