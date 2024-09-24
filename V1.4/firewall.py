@@ -3,6 +3,7 @@ import time
 import netfilterqueue
 import dpkt
 import socket
+import ipaddress
 from concurrent.futures import ThreadPoolExecutor
 
 # File paths for firewall rules and log files
@@ -42,14 +43,26 @@ def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
     except Exception as e:
         return f"{time.ctime()}: Error logging packet: {e}"
 
-# Check if the packet matches the rules
+# Check if the packet matches the rules, supporting both single IP and CIDR blocks
 def packet_matches(src_ip, dst_ip, proto, dport, rules):
+    src_ip_obj = ipaddress.ip_address(src_ip)
+    dst_ip_obj = ipaddress.ip_address(dst_ip)
+
     for rule in rules:
-        if rule["src_ip"] == src_ip and rule["dst_ip"] == dst_ip and rule["protocol"] == proto:
+        rule_src_ip = rule["src_ip"]
+        rule_dst_ip = rule["dst_ip"]
+
+        # Convert rule IP to network or address object
+        rule_src_ip_obj = ipaddress.ip_network(rule_src_ip, strict=False)
+        rule_dst_ip_obj = ipaddress.ip_network(rule_dst_ip, strict=False)
+
+        # Check if the packet's IPs are within the rule's network range or match the single IP
+        if src_ip_obj in rule_src_ip_obj and dst_ip_obj in rule_dst_ip_obj and rule["protocol"] == proto:
             if proto in ["tcp", "udp"] and dport == rule["dst_port"]:
                 return True
-            if proto == "icmp":  # No port for ICMP
+            if proto == "icmp":
                 return True
+
     return False
 
 # Extract packet details using dpkt
@@ -119,3 +132,4 @@ def setup_queue():
 # Main execution
 if __name__ == "__main__":
     setup_queue()
+                               
