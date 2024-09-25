@@ -56,7 +56,7 @@ firewall() {
                 sudo python3 vpn_manager.py
 
                 # Wait for VPN to fully initialize
-                sleep 10  # No parentheses
+                sleep 10
 
                 # Restart the firewall
                 manage_firewall

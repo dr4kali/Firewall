@@ -81,8 +81,9 @@ sudo apt-get install openvpn #for Debian
 
 1. **Clone or download the firewall script and the accompanying files** (like `firewall.py`, `firewall_rules.txt`, and `gui_logger.py`).
     
-2. **Ensure that all the necessary packages are installed** by following the commands mentioned above. 
-3. Give execute permission on the `firewall.sh`, `gui_logger.py`, `firewall.py`, and `vpn_manager.py`
+2. **Ensure that all the necessary packages are installed** by following the commands mentioned above.
+
+3. **Give Execute Permission on** `firewall.sh`, `gui_logger.py`, `firewall.py`, and `vpn_manager.py`
     
 4. **Run the setup script**:
     `sudo ./firewall.sh`
