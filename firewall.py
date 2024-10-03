@@ -1,17 +1,23 @@
+import pickle
 import os
 import time
-import netfilterqueue
 import dpkt
 import socket
-import ipaddress
+import netfilterqueue
 from concurrent.futures import ThreadPoolExecutor
+import ipaddress
+import psutil
+from scapy.all import sniff  # Importing sniff function from scapy
 
-# File paths for firewall rules and log files
-RULES_FILE = "firewall_rules.txt"
-LOG_FILE = "firewall_log.txt"
+RULES_FILE = "var/firewall/rules"
+LOG_FILE = "var/firewall/log"
 
-# Load rules once at the start to avoid repeated file I/O operations
+def sniff_on_interface(interface):
+    """ Sniff packets on the given interface. """
+    sniff(iface=interface, prn=lambda x: handle_packet(x, interface), store=0)
+
 def load_rules():
+    """ Load firewall rules from a specified file. """
     rules = []
     with open(RULES_FILE, "r") as f:
         for line in f:
@@ -22,13 +28,13 @@ def load_rules():
                 rules.append(rule_dict)
     return rules
 
-# Batch logging for better performance
 def log_packet(packet_info_list):
+    """ Log packet information to the log file. """
     with open(LOG_FILE, "a") as log_file:
         log_file.write("\n".join(packet_info_list) + "\n")
 
-# Generate packet log information
 def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
+    """ Generate a log entry for a packet. """
     try:
         if proto == "TCP":
             info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
@@ -43,8 +49,8 @@ def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
     except Exception as e:
         return f"{time.ctime()}: Error logging packet: {e}"
 
-# Check if the packet matches the rules, supporting both single IP and CIDR blocks
 def packet_matches(src_ip, dst_ip, proto, dport, rules):
+    """ Check if the packet matches any defined firewall rules. """
     src_ip_obj = ipaddress.ip_address(src_ip)
     dst_ip_obj = ipaddress.ip_address(dst_ip)
 
@@ -52,21 +58,18 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
         rule_src_ip = rule["src_ip"]
         rule_dst_ip = rule["dst_ip"]
 
-        # Convert rule IP to network or address object
         rule_src_ip_obj = ipaddress.ip_network(rule_src_ip, strict=False)
         rule_dst_ip_obj = ipaddress.ip_network(rule_dst_ip, strict=False)
 
-        # Check if the packet's IPs are within the rule's network range or match the single IP
         if src_ip_obj in rule_src_ip_obj and dst_ip_obj in rule_dst_ip_obj and rule["protocol"] == proto:
             if proto in ["tcp", "udp"] and dport == rule["dst_port"]:
                 return True
             if proto == "icmp":
                 return True
-
     return False
 
-# Extract packet details using dpkt
 def extract_packet_details(packet_data):
+    """ Extract details from the packet. """
     ip_packet = dpkt.ip.IP(packet_data)  # Convert raw packet to dpkt IP object
     src_ip = socket.inet_ntoa(ip_packet.src)
     dst_ip = socket.inet_ntoa(ip_packet.dst)
@@ -88,8 +91,8 @@ def extract_packet_details(packet_data):
 
     return src_ip, dst_ip, proto, sport, dport
 
-# Process packet logic (to be run in parallel threads)
 def process_packet_logic(packet, packet_data, rules):
+    """ Logic for processing the packet. """
     try:
         # Extract packet details using dpkt
         src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
@@ -108,14 +111,14 @@ def process_packet_logic(packet, packet_data, rules):
         log_packet([f"{time.ctime()}: Error processing packet: {e}"])
         packet.accept()  # In case of error, allow the packet
 
-# Callback function to process packets (parallelized)
 def process_packet(packet, rules, executor):
+    """ Submit packet processing to the thread pool. """
     packet_data = packet.get_payload()
     # Submit packet processing to the thread pool for parallel execution
     executor.submit(process_packet_logic, packet, packet_data, rules)
 
-# Set up the Netfilter Queue and bind processing function (preloads rules)
 def setup_queue():
+    """ Set up the packet queue for processing. """
     rules = load_rules()  # Preload rules once
 
     queue = netfilterqueue.NetfilterQueue()
@@ -131,5 +134,7 @@ def setup_queue():
 
 # Main execution
 if __name__ == "__main__":
+    interfaces = psutil.net_if_addrs()  # Get network interfaces
+    for interface in interfaces:
+        sniff_on_interface(interface)
     setup_queue()
-                               

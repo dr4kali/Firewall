@@ -3,6 +3,12 @@
 # Function to manage the firewall and NFQUEUE setup
 manage_firewall() {
     # Set up iptables rules for NFQUEUE
+    sudo sysctl -w net.ipv4.ip_forward=1
+
+    # Get the active interface dynamically
+    INTERFACE=$(ip route get 1.1.1.1 | awk '{print $5}')
+    sudo iptables -t nat -A POSTROUTING -o "$INTERFACE" -j MASQUERADE
+
     sudo iptables -I INPUT -j NFQUEUE --queue-num 0
     sudo iptables -I FORWARD -j NFQUEUE --queue-num 0
     sudo iptables -I OUTPUT -j NFQUEUE --queue-num 0
@@ -13,6 +19,7 @@ manage_firewall() {
 
 # Function to stop the firewall
 stop_firewall() {
+    sudo sysctl -w net.ipv4.ip_forward=0
     echo "Stopping the firewall..."
     sudo pkill -f firewall.py
     sudo iptables -F  # Flush all iptables rules
