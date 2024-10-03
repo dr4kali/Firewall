@@ -42,7 +42,7 @@ firewall() {
         case $op in
             1)
                 # Open the firewall rules file in vim to add or remove rules
-                sudo vim firewall_rules.txt
+                sudo vim var/firewall/rules
                 ;;
             2)
                 # Stop the firewall by killing the Python process and flushing iptables

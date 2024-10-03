@@ -38,7 +38,7 @@ class LogViewer(tk.Tk):
         self.log_area.yview(tk.END)  # Scroll to the end of the widget
 
 def main():
-    log_file_path = 'firewall_log.txt'  # Path to the log file
+    log_file_path = 'var/firewall/log'  # Path to the log file
     viewer = LogViewer(log_file_path)
     viewer.mainloop()
     
