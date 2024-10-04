@@ -8,9 +8,11 @@ from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import psutil
 from scapy.all import sniff  # Importing sniff function from scapy
+from threading import Lock  # Importing threading.Lock for thread-safe logging
 
 RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
+log_lock = Lock()  # Initialize a lock for thread-safe logging
 
 def sniff_on_interface(interface):
     """ Sniff packets on the given interface. """
@@ -29,9 +31,10 @@ def load_rules():
     return rules
 
 def log_packet(packet_info_list):
-    """ Log packet information to the log file. """
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write("\n".join(packet_info_list) + "\n")
+    """ Log packet information to the log file in a thread-safe manner. """
+    with log_lock:  # Use the lock to ensure only one thread writes to the log file at a time
+        with open(LOG_FILE, "a") as log_file:
+            log_file.write("\n".join(packet_info_list) + "\n")
 
 def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
     """ Generate a log entry for a packet. """
