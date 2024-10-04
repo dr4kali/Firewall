@@ -100,7 +100,6 @@ def process_packet_logic(packet, packet_data, rules):
         log_entries = []
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
             log_entries.append(generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked"))
-            log_packet(log_entries)
             packet.drop()  # Block packet
         else:
             packet.accept()  # Allow packet
