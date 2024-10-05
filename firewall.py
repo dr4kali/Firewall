@@ -11,9 +11,9 @@ from scapy.all import sniff  # Importing sniff function from scapy
 RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
 
-"""def sniff_on_interface(interface):
+def sniff_on_interface(interface):
     """ Sniff packets on the given interface. """
-    sniff(iface=interface, prn=lambda x: handle_packet(x, interface), store=0)"""
+    sniff(iface=interface, prn=lambda x: handle_packet(x, interface), store=0)
 
 def load_rules():
     """ Load firewall rules from a specified file. """
@@ -130,7 +130,7 @@ def setup_queue():
 
 # Main execution
 if __name__ == "__main__":
-    #interfaces = psutil.net_if_addrs()  # Get network interfaces
-   # for interface in interfaces:
-     #   sniff_on_interface(interface)
+    interfaces = psutil.net_if_addrs()  # Get network interfaces
+    for interface in interfaces:
+        sniff_on_interface(interface)
     setup_queue()
