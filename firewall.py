@@ -6,7 +6,6 @@ import netfilterqueue
 from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import psutil
-#from scapy.all import sniff
 
 # File paths
 RULES_FILE = "var/firewall/rules"
