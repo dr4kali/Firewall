@@ -1,4 +1,3 @@
-import pickle
 import os
 import time
 import dpkt
@@ -103,13 +102,13 @@ def process_packet_logic(packet, packet_data, rules):
         log_entries = []
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
             log_entries.append(generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked"))
+            log_packet(log_entries)
             packet.drop()  # Block packet
         else:
             packet.accept()  # Allow packet
+            log_packet(log_entries)
 
         # Log only blocked packets
-        if log_entries:
-            log_packet(log_entries)
     except Exception as e:
         log_packet([f"{time.ctime()}: Error processing packet: {e}"])
         packet.accept()  # In case of error, allow the packet
