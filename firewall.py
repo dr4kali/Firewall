@@ -59,6 +59,7 @@ def extract_packet_details(packet_data):
     return src_ip, dst_ip, proto, sport, dport
 
 # Match packet with rules
+# Match packet with rules
 def packet_matches(src_ip, dst_ip, proto, dport, rules):
     """ Check if the packet matches any firewall rule. """
     src_ip_obj = ipaddress.ip_address(src_ip)
@@ -67,16 +68,23 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
     for rule in rules:
         rule_src_ip = rule["src_ip"]
         rule_dst_ip = rule["dst_ip"]
+        rule_proto = rule["protocol"]
+        rule_dst_port = rule["dst_port"]
 
+        # Convert rule IPs to IP address objects for comparison
         rule_src_ip_obj = ipaddress.ip_network(rule_src_ip, strict=False)
         rule_dst_ip_obj = ipaddress.ip_network(rule_dst_ip, strict=False)
 
-        if src_ip_obj in rule_src_ip_obj and dst_ip_obj in rule_dst_ip_obj and rule["protocol"] == proto:
-            if proto in ["tcp", "udp"] and dport == rule["dst_port"]:
-                return True
-            if proto == "icmp":
-                return True
-    return False
+        # Check if all criteria match for blocking
+        if (src_ip_obj in rule_src_ip_obj and
+            dst_ip_obj in rule_dst_ip_obj and
+            proto == rule_proto and
+            (proto not in ["tcp", "udp"] or (dport is not None and dport == rule_dst_port))):
+            return True  # Block this packet if all conditions match
+
+    # If no match is found in the rules, accept the packet
+    return False  # Accept the packet if no rules match
+
 
 # Process a packet based on the rules
 async def process_packet(packet, packet_data, rules):
