@@ -6,7 +6,7 @@ import netfilterqueue
 from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import psutil
-from scapy.all import sniff
+#from scapy.all import sniff
 
 # File paths
 RULES_FILE = "var/firewall/rules"
@@ -118,7 +118,4 @@ def setup_queue():
 # Main execution for sniffing and queue setup
 if __name__ == "__main__":
     interfaces = psutil.net_if_addrs()  # Get network interfaces
-
-    for interface in interfaces:
-        print(f"Starting sniffing on interface: {interface}")
     setup_queue()
