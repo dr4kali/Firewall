@@ -6,6 +6,8 @@ import netfilterqueue
 from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import psutil
+import asyncio
+import aiofiles
 
 # File paths
 RULES_FILE = "var/firewall/rules"
@@ -21,7 +23,7 @@ def load_rules():
 
     with open(RULES_FILE, "r") as f:
         for line in f:
-            if line.strip() and not line.startswith("#"):  # Skip empty lines and comments
+            if line.strip() and not line.startswith("#"):
                 rule_parts = [part.split(":") for part in line.strip().split(",")]
                 rule_dict = {key.strip(): (None if value.strip() == "-" else (int(value.strip()) if key.strip() == "dst_port" else value.strip())) 
                              for key, value in rule_parts}
@@ -29,16 +31,16 @@ def load_rules():
     return rules
 
 # Log packets
-def log_packet(action, src_ip, dst_ip, proto, sport=None, dport=None):
-    """ Logs packet information to a file. """
+async def log_packet(action, src_ip, dst_ip, proto, sport=None, dport=None):
+    """ Logs packet information to a file asynchronously. """
     log_entry = f"{time.ctime()} - {action}: {proto.upper()} {src_ip}:{sport or ''} -> {dst_ip}:{dport or ''}\n"
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write(log_entry)
+    async with aiofiles.open(LOG_FILE, "a") as log_file:
+        await log_file.write(log_entry)
 
 # Extract packet details
 def extract_packet_details(packet_data):
     """ Extract details from the packet. """
-    ip_packet = dpkt.ip.IP(packet_data)  # Convert raw packet to dpkt IP object
+    ip_packet = dpkt.ip.IP(packet_data)
     src_ip = socket.inet_ntoa(ip_packet.src)
     dst_ip = socket.inet_ntoa(ip_packet.dst)
     proto, sport, dport = None, None, None
@@ -77,27 +79,27 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
     return False
 
 # Process a packet based on the rules
-def process_packet(packet, packet_data, rules):
+async def process_packet(packet, packet_data, rules):
     """ Handles packet based on rules and logs actions. """
     try:
         # Extract packet details
         src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
 
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
-            log_packet("Blocked", src_ip, dst_ip, proto, sport, dport)
+            await log_packet("Blocked", src_ip, dst_ip, proto, sport, dport)
             packet.drop()  # Block packet
         else:
             packet.accept()  # Allow packet
 
     except Exception as e:
-        log_packet("Error", src_ip, dst_ip, "unknown", None, None)
+        await log_packet("Error", src_ip, dst_ip, "unknown", None, None)
         packet.accept()  # Allow packet if an error occurs
 
 # Queue and packet processing
-def process_packet_queue(packet, rules, executor):
-    """ Submit packet processing task to the thread pool. """
+async def process_packet_queue(packet, rules):
+    """ Submit packet processing task to the thread pool asynchronously. """
     packet_data = packet.get_payload()
-    executor.submit(process_packet, packet, packet_data, rules)
+    await process_packet(packet, packet_data, rules)
 
 # Set up packet queue
 def setup_queue():
@@ -105,14 +107,16 @@ def setup_queue():
     rules = load_rules()  # Load rules once
 
     queue = netfilterqueue.NetfilterQueue()
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-        print("Queue running, waiting for packets...")
-        queue.bind(0, lambda pkt: process_packet_queue(pkt, rules, executor))
+    loop = asyncio.get_event_loop()
 
-        try:
-            queue.run()
-        except KeyboardInterrupt:
-            print("Firewall stopped.")
+    # Bind the processing function to the packet queue
+    queue.bind(0, lambda pkt: loop.run_until_complete(process_packet_queue(pkt, rules)))
+
+    print("Queue running, waiting for packets...")
+    try:
+        queue.run()
+    except KeyboardInterrupt:
+        print("Firewall stopped.")
 
 # Main execution for sniffing and queue setup
 if __name__ == "__main__":
