@@ -82,6 +82,7 @@ def start_vpn():
 def stop_vpn():
     print("Stopping OpenVPN...")
     os.system("sudo pkill -f openvpn")
+    loading_animation(5)
     print("VPN stopped.")
 
 # Toggle VPN state
