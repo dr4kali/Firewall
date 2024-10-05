@@ -33,7 +33,6 @@ def load_rules():
 def log_packet(action, src_ip, dst_ip, proto, sport=None, dport=None):
     """ Logs packet information to a file. """
     log_entry = f"{time.ctime()} - {action}: {proto.upper()} {src_ip}:{sport or ''} -> {dst_ip}:{dport or ''}\n"
-    print(log_entry.strip())  # Print to console for real-time feedback
     with open(LOG_FILE, "a") as log_file:
         log_file.write(log_entry)
 
@@ -89,12 +88,10 @@ def process_packet(packet, packet_data, rules):
             log_packet("Blocked", src_ip, dst_ip, proto, sport, dport)
             packet.drop()  # Block packet
         else:
-            log_packet("Allowed", src_ip, dst_ip, proto, sport, dport)
             packet.accept()  # Allow packet
 
     except Exception as e:
         log_packet("Error", src_ip, dst_ip, "unknown", None, None)
-        print(f"Error processing packet: {e}")
         packet.accept()  # Allow packet if an error occurs
 
 # Queue and packet processing
@@ -124,5 +121,4 @@ if __name__ == "__main__":
 
     for interface in interfaces:
         print(f"Starting sniffing on interface: {interface}")
-
     setup_queue()
