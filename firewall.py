@@ -7,11 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import psutil
 from scapy.all import sniff  # Importing sniff function from scapy
-from threading import Lock  # Importing threading.Lock for thread-safe logging
 
 RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
-log_lock = Lock()  # Initialize a lock for thread-safe logging
 
 def sniff_on_interface(interface):
     """ Sniff packets on the given interface. """
@@ -29,21 +27,26 @@ def load_rules():
                 rules.append(rule_dict)
     return rules
 
-def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
-    """ Generate a log entry for a packet. """
+def log_packet(action, src_ip, dst_ip, proto, sport=None, dport=None):
+    """ Simple log function to log the packet action to the log file. """
     try:
-        if proto == "TCP":
-            info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
-        elif proto == "UDP":
-            info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
-        elif proto == "ICMP":
-            info = f"{proto} {src_ip} -> {dst_ip} (ICMP)"
+        # Construct log message
+        if proto == "tcp" or proto == "udp":
+            log_entry = f"{time.ctime()}: {action.upper()} {proto.upper()} {src_ip}:{sport} -> {dst_ip}:{dport}"
+        elif proto == "icmp":
+            log_entry = f"{time.ctime()}: {action.upper()} ICMP {src_ip} -> {dst_ip}"
         else:
-            info = f"Unknown protocol {proto}"
+            log_entry = f"{time.ctime()}: {action.upper()} Unknown protocol {proto}"
 
-        return f"{time.ctime()}: {action} {info}"
+        # Write to log file
+        with open(LOG_FILE, "a") as log_file:
+            log_file.write(log_entry + "\n")
+
+        # Print to console for visibility
+        print(log_entry, flush=True)
+
     except Exception as e:
-        return f"{time.ctime()}: Error logging packet: {e}"
+        print(f"Error while logging: {e}", flush=True)
 
 def packet_matches(src_ip, dst_ip, proto, dport, rules):
     """ Check if the packet matches any defined firewall rules. """
@@ -93,23 +96,15 @@ def process_packet_logic(packet, packet_data, rules):
         # Extract packet details using dpkt
         src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
 
-        log_entries = []
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
-            log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked")
-            print(log_entry, src_ip, dst_ip, proto, sport, dport, flush=True)
-            log_entries.append(log_entry)
-            with open(LOG_FILE, "a") as log_file:
-                log_file.write("\n".join(log_entries) + "\n")
+            log_packet("Blocked", src_ip, dst_ip, proto, sport, dport)
             packet.drop()  # Block packet
         else:
+            log_packet("Allowed", src_ip, dst_ip, proto, sport, dport)
             packet.accept()  # Allow packet
 
-
     except Exception as e:
-        error_log = f"{time.ctime()}: Error processing packet: {e}"
-        with log_lock:
-            with open(LOG_FILE, "a") as log_file:
-                log_file.write(error_log + "\n")
+        print(f"Error processing packet: {e}", flush=True)
         packet.accept()  # In case of error, allow the packet
 
 def process_packet(packet, rules, executor):
