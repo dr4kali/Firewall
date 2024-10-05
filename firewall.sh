@@ -15,7 +15,7 @@ echo "$banner"
 # Function to manage the firewall and NFQUEUE setup
 manage_firewall() {
     # Set up iptables rules for NFQUEUE
-    sudo sysctl -w net.ipv4.ip_forward=1 &
+    sudo sysctl -qw net.ipv4.ip_forward=1 
 
     # Get the active interface dynamically
     INTERFACE=$(ip route get 1.1.1.1 | awk '{print $5}')
@@ -31,7 +31,7 @@ manage_firewall() {
 
 # Function to stop the firewall
 stop_firewall() {
-    sudo sysctl -w net.ipv4.ip_forward=0 &
+    sudo sysctl -qw net.ipv4.ip_forward=0
     echo "Stopping the firewall..."
     sudo pkill -f firewall.py
     sudo iptables -F  # Flush all iptables rules
@@ -55,6 +55,10 @@ firewall() {
             1)
                 # Open the firewall rules file in vim to add or remove rules
                 sudo vim var/firewall/rules
+                if find var/firewall/rules -mmin -0.083 | grep -q "var/firewall/rules" ; then
+                    stop_firewall
+                    manage_firewall
+                fi
                 ;;
             2)
                 # Stop the firewall by killing the Python process and flushing iptables
