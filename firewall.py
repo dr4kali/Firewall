@@ -29,12 +29,6 @@ def load_rules():
                 rules.append(rule_dict)
     return rules
 
-def log_packet(packet_info_list):
-    """ Log packet information to the log file in a thread-safe manner. """
-    with log_lock:  # Use the lock to ensure only one thread writes to the log file at a time
-        with open(LOG_FILE, "a") as log_file:
-            log_file.write("\n".join(packet_info_list) + "\n")
-
 def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
     """ Generate a log entry for a packet. """
     try:
@@ -94,23 +88,29 @@ def extract_packet_details(packet_data):
     return src_ip, dst_ip, proto, sport, dport
 
 def process_packet_logic(packet, packet_data, rules):
-    """ Logic for processing the packet. """
+    """ Logic for processing the packet and logging the action. """
     try:
         # Extract packet details using dpkt
         src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
 
         log_entries = []
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
-            log_entries.append(generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked"))
-            log_packet(log_entries)
+            log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked")
+            log_entries.append(log_entry)
             packet.drop()  # Block packet
         else:
             packet.accept()  # Allow packet
-            log_packet(log_entries)
 
         # Log only blocked packets
+        if log_entries:
+            with log_lock:  # Use the lock to ensure only one thread writes to the log file at a time
+                with open(LOG_FILE, "a") as log_file:
+                    log_file.write("\n".join(log_entries) + "\n")
     except Exception as e:
-        log_packet([f"{time.ctime()}: Error processing packet: {e}"])
+        error_log = f"{time.ctime()}: Error processing packet: {e}"
+        with log_lock:
+            with open(LOG_FILE, "a") as log_file:
+                log_file.write(error_log + "\n")
         packet.accept()  # In case of error, allow the packet
 
 def process_packet(packet, rules, executor):
