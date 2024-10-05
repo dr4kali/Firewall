@@ -1,6 +1,21 @@
 import os
 import subprocess
 import time
+import sys
+import time
+
+def loading_animation(duration):
+    spinner = ['|', '/', '-', '\\']
+    end_time = time.time() + duration
+
+    while time.time() < end_time:
+        for frame in spinner:
+            sys.stdout.write(f'\rLoading... {frame}')
+            sys.stdout.flush()
+            time.sleep(0.1)  # Adjust the speed of the spinner here
+
+    sys.stdout.write('\rLoading complete!   \n')  # Clear the line after loading
+
 
 # File to store the VPN config path
 VPN_CONFIG_FILE = "vpn_config.txt"
@@ -55,7 +70,7 @@ def start_vpn():
     )
 
     # Give OpenVPN time to initialize
-    time.sleep(5)
+    loading_animation(5)
 
     # Check if OpenVPN started successfully
     if check_vpn():
