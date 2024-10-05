@@ -3,7 +3,7 @@ import time
 import dpkt
 import socket
 import netfilterqueue
-from concurrent.futures import ThreadPoolExecutor
+import asyncio
 import ipaddress
 import psutil
 
@@ -77,7 +77,7 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
     return False
 
 # Process a packet based on the rules
-def process_packet(packet, packet_data, rules):
+async def process_packet(packet, packet_data, rules):
     """ Handles packet based on rules and logs actions. """
     try:
         # Extract packet details
@@ -94,27 +94,27 @@ def process_packet(packet, packet_data, rules):
         packet.accept()  # Allow packet if an error occurs
 
 # Queue and packet processing
-def process_packet_queue(packet, rules, executor):
-    """ Submit packet processing task to the thread pool. """
+async def process_packet_queue(packet, rules):
+    """ Submit packet processing task to the event loop. """
     packet_data = packet.get_payload()
-    executor.submit(process_packet, packet, packet_data, rules)
+    await process_packet(packet, packet_data, rules)
 
 # Set up packet queue
-def setup_queue():
+async def setup_queue():
     """ Set up the NetfilterQueue for packet processing. """
     rules = load_rules()  # Load rules once
 
     queue = netfilterqueue.NetfilterQueue()
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-        print("Queue running, waiting for packets...")
-        queue.bind(0, lambda pkt: process_packet_queue(pkt, rules, executor))
+    print("Queue running, waiting for packets...")
 
-        try:
-            queue.run()
-        except KeyboardInterrupt:
-            print("Firewall stopped.")
+    queue.bind(0, lambda pkt: asyncio.ensure_future(process_packet_queue(pkt, rules)))
+
+    try:
+        queue.run()
+    except KeyboardInterrupt:
+        print("Firewall stopped.")
 
 # Main execution for sniffing and queue setup
 if __name__ == "__main__":
     interfaces = psutil.net_if_addrs()  # Get network interfaces
-    setup_queue()
+    asyncio.run(setup_queue())
