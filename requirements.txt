@@ -5,9 +5,7 @@ dpkt
 pickle
 os
 time
-dpkt
 socket
-netfilterqueue
 concurrent.futures
 ThreadPoolExecutor
 ipaddress
