@@ -96,6 +96,7 @@ def process_packet_logic(packet, packet_data, rules):
         log_entries = []
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
             log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked")
+            print(log_entry, src_ip, dst_ip, proto, sport, dport)
             log_entries.append(log_entry)
             with open(LOG_FILE, "a") as log_file:
                 log_file.write("\n".join(log_entries) + "\n")
