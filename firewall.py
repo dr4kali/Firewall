@@ -6,20 +6,20 @@ import netfilterqueue
 from concurrent.futures import ThreadPoolExecutor
 import ipaddress
 import psutil
-from scapy.all import sniff
+from scapy.all import sniff  # Importing sniff function from scapy
+from threading import Lock  # Importing threading.Lock for thread-safe logging
 
-# File paths
 RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
+log_lock = Lock()  # Initialize a lock for thread-safe logging
 
-# Load firewall rules
+def sniff_on_interface(interface):
+    """ Sniff packets on the given interface. """
+    sniff(iface=interface, prn=lambda x: handle_packet(x, interface), store=0)
+
 def load_rules():
     """ Load firewall rules from a specified file. """
     rules = []
-    if not os.path.exists(RULES_FILE):
-        print(f"Rules file not found: {RULES_FILE}")
-        return rules
-
     with open(RULES_FILE, "r") as f:
         for line in f:
             if line.strip() and not line.startswith("#"):  # Skip empty lines and comments
@@ -29,38 +29,24 @@ def load_rules():
                 rules.append(rule_dict)
     return rules
 
-# Log packets
-def log_packet(action, src_ip, dst_ip, proto, sport=None, dport=None):
-    """ Logs packet information to a file. """
-    log_entry = f"{time.ctime()} - {action}: {proto.upper()} {src_ip}:{sport or ''} -> {dst_ip}:{dport or ''}\n"
-    print(log_entry.strip())  # Print to console for real-time feedback
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write(log_entry)
+def generate_log_entry(src_ip, dst_ip, proto, sport, dport):
+    """ Generate a log entry for a blocked packet. """
+    try:
+        if proto == "TCP":
+            info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
+        elif proto == "UDP":
+            info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
+        elif proto == "ICMP":
+            info = f"{proto} {src_ip} -> {dst_ip} (ICMP)"
+        else:
+            info = f"Unknown protocol {proto}"
 
-# Extract packet details
-def extract_packet_details(packet_data):
-    """ Extract details from the packet. """
-    ip_packet = dpkt.ip.IP(packet_data)  # Convert raw packet to dpkt IP object
-    src_ip = socket.inet_ntoa(ip_packet.src)
-    dst_ip = socket.inet_ntoa(ip_packet.dst)
-    proto, sport, dport = None, None, None
+        return f"{time.ctime()}: Blocked {info}"
+    except Exception as e:
+        return f"{time.ctime()}: Error logging packet: {e}"
 
-    if isinstance(ip_packet.data, dpkt.tcp.TCP):
-        proto = "tcp"
-        sport = ip_packet.data.sport
-        dport = ip_packet.data.dport
-    elif isinstance(ip_packet.data, dpkt.udp.UDP):
-        proto = "udp"
-        sport = ip_packet.data.sport
-        dport = ip_packet.data.dport
-    elif isinstance(ip_packet.data, dpkt.icmp.ICMP):
-        proto = "icmp"
-
-    return src_ip, dst_ip, proto, sport, dport
-
-# Match packet with rules
 def packet_matches(src_ip, dst_ip, proto, dport, rules):
-    """ Check if the packet matches any firewall rule. """
+    """ Check if the packet matches any defined firewall rules. """
     src_ip_obj = ipaddress.ip_address(src_ip)
     dst_ip_obj = ipaddress.ip_address(dst_ip)
 
@@ -78,51 +64,75 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
                 return True
     return False
 
-# Process a packet based on the rules
-def process_packet(packet, packet_data, rules):
-    """ Handles packet based on rules and logs actions. """
+def extract_packet_details(packet_data):
+    """ Extract details from the packet. """
+    ip_packet = dpkt.ip.IP(packet_data)  # Convert raw packet to dpkt IP object
+    src_ip = socket.inet_ntoa(ip_packet.src)
+    dst_ip = socket.inet_ntoa(ip_packet.dst)
+    proto = None
+    sport = None
+    dport = None
+
+    # Determine protocol and destination port
+    if isinstance(ip_packet.data, dpkt.tcp.TCP):
+        proto = "tcp"
+        sport = ip_packet.data.sport
+        dport = ip_packet.data.dport
+    elif isinstance(ip_packet.data, dpkt.udp.UDP):
+        proto = "udp"
+        sport = ip_packet.data.sport
+        dport = ip_packet.data.dport
+    elif isinstance(ip_packet.data, dpkt.icmp.ICMP):
+        proto = "icmp"
+
+    return src_ip, dst_ip, proto, sport, dport
+
+def process_packet_logic(packet, packet_data, rules):
+    """ Logic for processing the packet and logging the action. """
     try:
-        # Extract packet details
+        # Extract packet details using dpkt
         src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
 
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
-            log_packet("Blocked", src_ip, dst_ip, proto, sport, dport)
+            log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport)
+            with log_lock:
+                with open(LOG_FILE, "a") as log_file:
+                    log_file.write(log_entry + "\n")
             packet.drop()  # Block packet
         else:
-            log_packet("Allowed", src_ip, dst_ip, proto, sport, dport)
             packet.accept()  # Allow packet
 
     except Exception as e:
-        log_packet("Error", src_ip, dst_ip, "unknown", None, None)
-        print(f"Error processing packet: {e}")
-        packet.accept()  # Allow packet if an error occurs
+        error_log = f"{time.ctime()}: Error processing packet: {e}"
+        with log_lock:
+            with open(LOG_FILE, "a") as log_file:
+                log_file.write(error_log + "\n")
+        packet.accept()  # In case of error, allow the packet
 
-# Queue and packet processing
-def process_packet_queue(packet, rules, executor):
-    """ Submit packet processing task to the thread pool. """
+def process_packet(packet, rules, executor):
+    """ Submit packet processing to the thread pool. """
     packet_data = packet.get_payload()
-    executor.submit(process_packet, packet, packet_data, rules)
+    # Submit packet processing to the thread pool for parallel execution
+    executor.submit(process_packet_logic, packet, packet_data, rules)
 
-# Set up packet queue
 def setup_queue():
-    """ Set up the NetfilterQueue for packet processing. """
-    rules = load_rules()  # Load rules once
+    """ Set up the packet queue for processing. """
+    rules = load_rules()  # Preload rules once
 
     queue = netfilterqueue.NetfilterQueue()
+    
+    # Create a thread pool to process packets in parallel
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-        print("Queue running, waiting for packets...")
-        queue.bind(0, lambda pkt: process_packet_queue(pkt, rules, executor))
-
+        queue.bind(0, lambda pkt: process_packet(pkt, rules, executor))
+        
         try:
             queue.run()
         except KeyboardInterrupt:
-            print("Firewall stopped.")
+            print("Stopping firewall...")
 
-# Main execution for sniffing and queue setup
+# Main execution
 if __name__ == "__main__":
     interfaces = psutil.net_if_addrs()  # Get network interfaces
-
     for interface in interfaces:
-        print(f"Starting sniffing on interface: {interface}")
-
+        sniff_on_interface(interface)
     setup_queue()
