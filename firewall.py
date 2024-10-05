@@ -29,8 +29,8 @@ def load_rules():
                 rules.append(rule_dict)
     return rules
 
-def generate_log_entry(src_ip, dst_ip, proto, sport, dport):
-    """ Generate a log entry for a blocked packet. """
+def generate_log_entry(src_ip, dst_ip, proto, sport, dport, action):
+    """ Generate a log entry for a packet. """
     try:
         if proto == "TCP":
             info = f"{proto} {src_ip}:{sport} -> {dst_ip}:{dport}"
@@ -41,7 +41,7 @@ def generate_log_entry(src_ip, dst_ip, proto, sport, dport):
         else:
             info = f"Unknown protocol {proto}"
 
-        return f"{time.ctime()}: Blocked {info}"
+        return f"{time.ctime()}: {action} {info}"
     except Exception as e:
         return f"{time.ctime()}: Error logging packet: {e}"
 
@@ -94,7 +94,7 @@ def process_packet_logic(packet, packet_data, rules):
         src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
 
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
-            log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport)
+            log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked")
             with log_lock:
                 with open(LOG_FILE, "a") as log_file:
                     log_file.write(log_entry + "\n")
