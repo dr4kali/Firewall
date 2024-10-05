@@ -97,15 +97,16 @@ def process_packet_logic(packet, packet_data, rules):
         if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
             log_entry = generate_log_entry(src_ip, dst_ip, proto.upper(), sport, dport, "Blocked")
             log_entries.append(log_entry)
+            # Log only blocked packets
+            if log_entries:
+                with log_lock:  # Use the lock to ensure only one thread writes to the log file at a time
+                    with open(LOG_FILE, "a") as log_file:
+                        log_file.write("\n".join(log_entries) + "\n")
             packet.drop()  # Block packet
         else:
             packet.accept()  # Allow packet
 
-        # Log only blocked packets
-        if log_entries:
-            with log_lock:  # Use the lock to ensure only one thread writes to the log file at a time
-                with open(LOG_FILE, "a") as log_file:
-                    log_file.write("\n".join(log_entries) + "\n")
+
     except Exception as e:
         error_log = f"{time.ctime()}: Error processing packet: {e}"
         with log_lock:
