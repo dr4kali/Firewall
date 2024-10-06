@@ -14,8 +14,8 @@ RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
 
 # Define threshold limits
-CPU_THRESHOLD = 80  # 80%
-MEMORY_THRESHOLD = 80  # 75%
+CPU_THRESHOLD = 20  # for testing
+MEMORY_THRESHOLD = 20  # for testing
 
 # Log performance alerts
 async def log_alert(message):
