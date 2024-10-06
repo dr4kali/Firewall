@@ -2,11 +2,20 @@ import requests
 import json
 import time
 import os
+import logging
 from datetime import datetime, timedelta
 
 # File path for rules and last fetch time
 RULES_FILE = "var/firewall/rules"
 LAST_FETCH_FILE = "var/firewall/last_fetch_time.json"
+LOG_FILE = "var/firewall/output.log"
+
+# Set up logging configuration
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # AbuseIPDB API endpoint and configuration
 API_URL = 'https://api.abuseipdb.com/api/v2/blacklist'
@@ -30,7 +39,7 @@ def fetch_abuseip_data():
         data = response.json()
         return data.get('data', [])[:5]  # Limit to the first 5 entries
     except Exception as e:
-        print(f"Error fetching data from AbuseIPDB: {e}")
+        logging.error(f"Error fetching data from AbuseIPDB: {e}")
         return []
 
 # Load existing rules to check for duplicates
@@ -47,7 +56,7 @@ def load_existing_rules():
                             ip = part.split(":")[1].strip()
                             existing_ips.add(ip)
     except FileNotFoundError:
-        print(f"Rules file not found, creating a new one: {RULES_FILE}")
+        logging.warning(f"Rules file not found, creating a new one: {RULES_FILE}")
     return existing_ips
 
 # Update firewall rules with new IPs, avoiding duplicates
@@ -64,9 +73,9 @@ def update_firewall_rules(blacklisted_ips):
                     rule = f"src_ip: {ip_address}, dst_ip: 0.0.0.0, protocol: tcp, dst_port: -\n"
                     rules_file.write(rule)
                     new_rules_count += 1
-        print(f"Added {new_rules_count} new rules to {RULES_FILE}.")
+        logging.info(f"Added {new_rules_count} new rules to {RULES_FILE}.")
     except Exception as e:
-        print(f"Error updating rules file: {e}")
+        logging.error(f"Error updating rules file: {e}")
 
 # Check if it's time to fetch new data
 def should_fetch_new_data():

@@ -27,7 +27,7 @@ manage_firewall() {
     sudo iptables -I OUTPUT -j NFQUEUE --queue-num 0
 
     # Start the Python firewall script in the background
-    sudo python3 firewall.py >> output.log 2>&1 &  # Run the firewall in the background
+    sudo python3 firewall.py >> var/firewall/output.log 2>&1 &  # Run the firewall in the background
 }
 
 # Function to stop the firewall

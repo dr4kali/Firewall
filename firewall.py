@@ -19,7 +19,7 @@ MEMORY_THRESHOLD = 20  # for testing
 
 # Log performance alerts
 async def log_alert(message):
-    async with aiofiles.open("output.log", "a") as log_file:
+    async with aiofiles.open("var/firewall/output.log", "a") as log_file:
         await log_file.write(f"{time.ctime()} - ALERT: {message}\n")
 
 # Check system performance
