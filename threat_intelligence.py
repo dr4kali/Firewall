@@ -19,7 +19,7 @@ logging.basicConfig(
 
 # AbuseIPDB API endpoint and configuration
 API_URL = 'https://api.abuseipdb.com/api/v2/blacklist'
-API_KEY = '1a484b965a1c6c836d3bbb78376d8817ab86ab36116f64725f5fed1b73db8472f4ef756f840ddec1'
+API_KEY = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 
 # Define query parameters (e.g., minimum confidence score)
 QUERYSTRING = {
