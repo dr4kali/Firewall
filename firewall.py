@@ -6,12 +6,38 @@ import netfilterqueue
 import asyncio
 import aiofiles
 import ipaddress
+import psutil
 from concurrent.futures import ThreadPoolExecutor
 
 # File paths
 RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
 
+# Define threshold limits
+CPU_THRESHOLD = 80  # 80%
+MEMORY_THRESHOLD = 80  # 75%
+
+# Log performance alerts
+async def log_alert(message):
+    async with aiofiles.open("output.log", "a") as log_file:
+        await log_file.write(f"{time.ctime()} - ALERT: {message}\n")
+
+# Check system performance
+async def monitor_system():
+    while True:
+        # CPU usage
+        cpu_usage = psutil.cpu_percent(interval=1)
+        if cpu_usage > CPU_THRESHOLD:
+            await log_alert(f"CPU usage exceeded: {cpu_usage}%")
+
+        # Memory usage
+        memory_info = psutil.virtual_memory()
+        memory_usage = memory_info.percent
+        if memory_usage > MEMORY_THRESHOLD:
+            await log_alert(f"Memory usage exceeded: {memory_usage}%")
+
+        await asyncio.sleep(5)  # Monitor every 5 seconds
+        
 # Load firewall rules (no change)
 def load_rules():
     rules = []
