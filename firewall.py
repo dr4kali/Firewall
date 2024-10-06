@@ -19,7 +19,7 @@ MEMORY_THRESHOLD = 20  # for testing
 
 # Log performance alerts
 async def log_alert(message):
-    async with aiofiles.open("output.log", "a") as log_file:
+    async with aiofiles.open("var/firewall/output.log", "a") as log_file:
         await log_file.write(f"{time.ctime()} - ALERT: {message}\n")
 
 # Check system performance
@@ -38,7 +38,7 @@ async def monitor_system():
 
         await asyncio.sleep(5)  # Monitor every 5 seconds
         
-# Load firewall rules (no change)
+# Load firewall rules
 def load_rules():
     rules = []
     if not os.path.exists(RULES_FILE):
@@ -49,10 +49,17 @@ def load_rules():
         for line in f:
             if line.strip() and not line.startswith("#"):
                 rule_parts = [part.split(":") for part in line.strip().split(",")]
+                
+                # Check if each rule part has exactly two elements
+                if any(len(part) != 2 for part in rule_parts):
+                    print(f"Skipping malformed rule: {line.strip()}")
+                    continue  # Skip malformed lines
+
                 rule_dict = {key.strip(): (None if value.strip() == "-" else (int(value.strip()) if key.strip() == "dst_port" else value.strip())) 
                              for key, value in rule_parts}
                 rules.append(rule_dict)
     return rules
+
 
 # Log packets (no change)
 async def log_packet(action, src_ip, dst_ip, proto, sport=None, dport=None):

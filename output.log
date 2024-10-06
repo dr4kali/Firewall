@@ -1,0 +1,45 @@
+Traceback (most recent call last):
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 138, in <module>
+    asyncio.run(main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 135, in main
+    await asyncio.gather(firewall_task, monitor_task)
+  File "/usr/lib/python3.12/asyncio/threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 116, in setup_queue
+    rules = load_rules()
+            ^^^^^^^^^^^^
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 53, in load_rules
+    for key, value in rule_parts}
+        ^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)
+Sun Oct  6 17:28:05 2024 - ALERT: CPU usage exceeded: 29.6%
+Sun Oct  6 17:28:12 2024 - ALERT: CPU usage exceeded: 21.7%
+Sun Oct  6 17:28:18 2024 - ALERT: CPU usage exceeded: 20.6%
+Sun Oct  6 17:29:05 2024 - ALERT: CPU usage exceeded: 20.9%
+Sun Oct  6 17:29:11 2024 - ALERT: CPU usage exceeded: 23.2%
+Sun Oct  6 17:29:18 2024 - ALERT: CPU usage exceeded: 24.1%
+Sun Oct  6 17:29:24 2024 - ALERT: CPU usage exceeded: 22.8%
+Sun Oct  6 17:37:39 2024 - ALERT: CPU usage exceeded: 27.3%
+Sun Oct  6 17:37:52 2024 - ALERT: CPU usage exceeded: 23.3%
+Sun Oct  6 17:38:05 2024 - ALERT: CPU usage exceeded: 22.5%
+Sun Oct  6 17:38:18 2024 - ALERT: CPU usage exceeded: 21.5%
+Sun Oct  6 17:38:25 2024 - ALERT: CPU usage exceeded: 21.5%
+Sun Oct  6 17:38:31 2024 - ALERT: CPU usage exceeded: 20.1%
+Sun Oct  6 17:46:40 2024 - ALERT: CPU usage exceeded: 35.3%
+Sun Oct  6 17:46:46 2024 - ALERT: CPU usage exceeded: 21.1%
+Sun Oct  6 17:46:52 2024 - ALERT: CPU usage exceeded: 24.3%
+Sun Oct  6 17:46:58 2024 - ALERT: CPU usage exceeded: 24.8%
+Sun Oct  6 17:46:58 2024 - ALERT: Memory usage exceeded: 21.0%
