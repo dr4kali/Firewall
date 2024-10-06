@@ -16,7 +16,7 @@ echo "$banner"
 manage_firewall() {
     # Set up iptables rules for NFQUEUE
     sudo sysctl -qw net.ipv4.ip_forward=1 
-    python3 update_rules.py & 
+    python3 threat_intelligence.py & 
 
     # Get the active interface dynamically
     INTERFACE=$(ip route get 1.1.1.1 | awk '{print $5}')
@@ -35,7 +35,7 @@ stop_firewall() {
     sudo sysctl -qw net.ipv4.ip_forward=0
     echo "Stopping the firewall..."
     sudo pkill -f firewall.py
-    sudo pkill -f update_rules.py
+    sudo pkill -f threat_intelligence.py
     sudo iptables -F  # Flush all iptables rules
     echo "Firewall stopped."
 }
