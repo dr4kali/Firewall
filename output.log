@@ -1,0 +1,27 @@
+Traceback (most recent call last):
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 138, in <module>
+    asyncio.run(main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 135, in main
+    await asyncio.gather(firewall_task, monitor_task)
+  File "/usr/lib/python3.12/asyncio/threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 116, in setup_queue
+    rules = load_rules()
+            ^^^^^^^^^^^^
+  File "/home/dr4kali/Project/Firewall/firewall.py", line 53, in load_rules
+    for key, value in rule_parts}
+        ^^^^^^^^^^
+ValueError: too many values to unpack (expected 2)

@@ -7,7 +7,7 @@ RULES_FILE = "var/firewall/rules"
 
 # AbuseIPDB API endpoint and configuration
 API_URL = 'https://api.abuseipdb.com/api/v2/blacklist'
-API_KEY = 'f3e2c91e30cd3ec7ffd38a7dbd748858f53dc50b92b5266186453466f929b45068fa24f060ffbaa4'
+API_KEY = '1a484b965a1c6c836d3bbb78376d8817ab86ab36116f64725f5fed1b73db8472f4ef756f840ddec1'
 
 # Define query parameters (e.g., minimum confidence score)
 QUERYSTRING = {
