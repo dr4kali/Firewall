@@ -25,3 +25,21 @@ Traceback (most recent call last):
     for key, value in rule_parts}
         ^^^^^^^^^^
 ValueError: too many values to unpack (expected 2)
+Sun Oct  6 17:28:05 2024 - ALERT: CPU usage exceeded: 29.6%
+Sun Oct  6 17:28:12 2024 - ALERT: CPU usage exceeded: 21.7%
+Sun Oct  6 17:28:18 2024 - ALERT: CPU usage exceeded: 20.6%
+Sun Oct  6 17:29:05 2024 - ALERT: CPU usage exceeded: 20.9%
+Sun Oct  6 17:29:11 2024 - ALERT: CPU usage exceeded: 23.2%
+Sun Oct  6 17:29:18 2024 - ALERT: CPU usage exceeded: 24.1%
+Sun Oct  6 17:29:24 2024 - ALERT: CPU usage exceeded: 22.8%
+Sun Oct  6 17:37:39 2024 - ALERT: CPU usage exceeded: 27.3%
+Sun Oct  6 17:37:52 2024 - ALERT: CPU usage exceeded: 23.3%
+Sun Oct  6 17:38:05 2024 - ALERT: CPU usage exceeded: 22.5%
+Sun Oct  6 17:38:18 2024 - ALERT: CPU usage exceeded: 21.5%
+Sun Oct  6 17:38:25 2024 - ALERT: CPU usage exceeded: 21.5%
+Sun Oct  6 17:38:31 2024 - ALERT: CPU usage exceeded: 20.1%
+Sun Oct  6 17:46:40 2024 - ALERT: CPU usage exceeded: 35.3%
+Sun Oct  6 17:46:46 2024 - ALERT: CPU usage exceeded: 21.1%
+Sun Oct  6 17:46:52 2024 - ALERT: CPU usage exceeded: 24.3%
+Sun Oct  6 17:46:58 2024 - ALERT: CPU usage exceeded: 24.8%
+Sun Oct  6 17:46:58 2024 - ALERT: Memory usage exceeded: 21.0%
