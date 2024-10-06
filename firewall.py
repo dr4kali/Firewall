@@ -127,6 +127,12 @@ def setup_queue():
         except KeyboardInterrupt:
             print("Firewall stopped.")
 
-# Main execution for sniffing and queue setup
+async def main():
+    # Run the firewall setup and monitoring system concurrently
+    firewall_task = asyncio.to_thread(setup_queue)  # Run the firewall in a thread
+    monitor_task = monitor_system()  # Run system monitoring
+    
+    await asyncio.gather(firewall_task, monitor_task)
+
 if __name__ == "__main__":
-    setup_queue()
+    asyncio.run(main())
