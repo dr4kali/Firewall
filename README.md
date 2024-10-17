@@ -43,14 +43,14 @@ The `libnetfilter_queue` package is required to facilitate communication between
 
 For RHEL 
 ```
-sudo yum install libnetfilter_queue-devel
+sudo yum install libnetfilter_queue-devel python3-devel python3-tkinter
 sudo yum groupinstall "Development Tools"
 sudo yum update
 ```
 
 For Debian
 ```
-sudo apt-get install libnetfilter-queue1 libnetfilter-queue-dev
+sudo apt-get install libnetfilter-queue1 libnetfilter-queue-dev python3-tk python3-dev
 ```
 
 ### 4. **Vim**

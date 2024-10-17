@@ -1,14 +1,6 @@
 NetfilterQueue
 scapy
-tk
 dpkt
-pickle
-os
-time
-socket
-concurrent.futures
-ThreadPoolExecutor
 ipaddress
 psutil
 scapy
-sniff
