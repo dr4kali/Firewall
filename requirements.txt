@@ -1,6 +1,4 @@
 NetfilterQueue
-scapy
 dpkt
 ipaddress
 psutil
-scapy
