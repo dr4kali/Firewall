@@ -16,7 +16,7 @@ echo "                                                               ";
 manage_firewall() {
     # Set up iptables rules for NFQUEUE
     sudo sysctl -qw net.ipv4.ip_forward=1 
-    python3 threat_intelligence.py & 
+    python3 threat_intelligence.py >> var/firewall/output.log 2>&1 &
 
     # Get the active interface dynamically
     INTERFACE=$(ip route get 1.1.1.1 | awk '{print $5}')

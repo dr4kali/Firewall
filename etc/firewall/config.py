@@ -9,5 +9,6 @@ TIME_FRAME = 1  # Adjust to monitor in longer intervals if necessary
 CPU_THRESHOLD = 20
 MEMORY_THRESHOLD = 20
 
-# Add and API key from ABUSEIPDB
+# Enable Threat Intelligence
+Enable_Threat_Intelligence = "yes"  # yes to enable or "no" to disable
 API_KEY = 'xxxxxxxxxxxxxxxxxxxxxx'
