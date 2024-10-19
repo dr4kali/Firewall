@@ -18,7 +18,7 @@ def loading_animation(duration):
 
 
 # File to store the VPN config path
-VPN_CONFIG_FILE = "vpn_config.txt"
+VPN_CONFIG_FILE = "etc/vpn_config.txt"
 
 # Function to save the VPN path
 def save_vpn_path(vpn_path):

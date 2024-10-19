@@ -14,8 +14,8 @@ RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
 
 # Define threshold limits
-CPU_THRESHOLD = 20  # for testing
-MEMORY_THRESHOLD = 20  # for testing
+CPU_THRESHOLD = 90  # for testing
+MEMORY_THRESHOLD = 90  # for testing
 
 # Log performance alerts
 async def log_alert(message):
@@ -36,7 +36,7 @@ async def monitor_system():
         if memory_usage > MEMORY_THRESHOLD:
             await log_alert(f"Memory usage exceeded: {memory_usage}%")
 
-        await asyncio.sleep(5)  # Monitor every 5 seconds
+        await asyncio.sleep(60)
         
 # Load firewall rules
 def load_rules():
@@ -125,7 +125,7 @@ def setup_queue():
     queue = netfilterqueue.NetfilterQueue()
 
     # Use ThreadPoolExecutor for handling CPU-bound tasks
-    with ThreadPoolExecutor(max_workers=4) as executor:  # Adjust max_workers as needed
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         queue.bind(0, lambda pkt: executor.submit(process_packet, pkt, pkt.get_payload(), rules))
 
         print("Queue running, waiting for packets...")
