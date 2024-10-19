@@ -4,11 +4,19 @@ import time
 import os
 import logging
 from datetime import datetime, timedelta
+import sys
+sys.path.append('etc/firewall/')
+from config import API_KEY, Enable_Threat_Intelligence
 
-# File path for rules and last fetch time
-RULES_FILE = "var/firewall/rules"
-LAST_FETCH_FILE = "var/firewall/last_fetch_time.json"
-LOG_FILE = "var/firewall/output.log"
+# Check if Threat Intelligence is enabled
+if not (hasattr(Enable_Threat_Intelligence, '__str__') and Enable_Threat_Intelligence.lower() == "yes"):
+    print("Threat Intelligence feature is disabled. Exiting...")
+    sys.exit(0)
+
+# File paths for rules and last fetch time
+RULES_FILE = os.path.join("var", "firewall", "rules")
+LAST_FETCH_FILE = os.path.join("var", "firewall", "last_fetch_time.json")
+LOG_FILE = os.path.join("var", "firewall", "output.log")
 
 # Set up logging configuration
 logging.basicConfig(
@@ -19,7 +27,6 @@ logging.basicConfig(
 
 # AbuseIPDB API endpoint and configuration
 API_URL = 'https://api.abuseipdb.com/api/v2/blacklist'
-API_KEY = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 
 # Define query parameters (e.g., minimum confidence score)
 QUERYSTRING = {
@@ -33,6 +40,7 @@ HEADERS = {
 
 # Fetch data from AbuseIPDB
 def fetch_abuseip_data():
+    """Fetch blacklisted IPs from AbuseIPDB API."""
     try:
         response = requests.get(API_URL, headers=HEADERS, params=QUERYSTRING)
         response.raise_for_status()
@@ -44,12 +52,12 @@ def fetch_abuseip_data():
 
 # Load existing rules to check for duplicates
 def load_existing_rules():
+    """Load existing rules from the rules file."""
     existing_ips = set()
     try:
         with open(RULES_FILE, "r") as rules_file:
             for line in rules_file:
                 if line.strip() and "src_ip" in line:
-                    # Extract the IP address from each rule
                     rule_parts = line.strip().split(",")
                     for part in rule_parts:
                         if "src_ip" in part:
@@ -61,15 +69,15 @@ def load_existing_rules():
 
 # Update firewall rules with new IPs, avoiding duplicates
 def update_firewall_rules(blacklisted_ips):
+    """Update firewall rules with new IPs."""
     existing_ips = load_existing_rules()
     new_rules_count = 0
 
     try:
-        with open(RULES_FILE, "a") as rules_file:  # Append new rules to the file
+        with open(RULES_FILE, "a") as rules_file:
             for entry in blacklisted_ips:
                 ip_address = entry.get("ipAddress")
                 if ip_address and ip_address not in existing_ips:
-                    # Write the new rule if it's not a duplicate
                     rule = f"src_ip: {ip_address}, dst_ip: 0.0.0.0, protocol: tcp, dst_port: -\n"
                     rules_file.write(rule)
                     new_rules_count += 1
@@ -79,6 +87,7 @@ def update_firewall_rules(blacklisted_ips):
 
 # Check if it's time to fetch new data
 def should_fetch_new_data():
+    """Determine if new data should be fetched based on last fetch time."""
     if not os.path.exists(LAST_FETCH_FILE):
         return True, 0  # No record exists, fetch data
 
@@ -89,17 +98,18 @@ def should_fetch_new_data():
     fetch_count = data['fetchCount']
     now = datetime.now()
 
-    # Check if a new day has started or if 6 hours have passed since the last fetch
     new_day = now.date() > last_fetch_datetime.date()
     if new_day:
         fetch_count = 0  # Reset fetch count for a new day
     elif fetch_count >= 4:
+        logging.info("Fetch limit reached for today. Skipping fetch.")
         return False, fetch_count  # Limit reached for the day
 
     return now >= last_fetch_datetime + timedelta(hours=6), fetch_count
 
 # Update the last fetch time and fetch count
 def update_last_fetch_time(fetch_count):
+    """Update the last fetch time and fetch count."""
     now = datetime.now().isoformat()
     data = {
         'lastFetch': now,
@@ -110,19 +120,23 @@ def update_last_fetch_time(fetch_count):
 
 # Main script function
 def main():
+    """Main function for fetching and updating rules."""
     should_fetch, fetch_count = should_fetch_new_data()
     
     if should_fetch:
-        # Fetch blacklisted IPs from AbuseIPDB
         blacklisted_ips = fetch_abuseip_data()
-
         if blacklisted_ips:
-            # Update firewall rules with fetched IPs, avoiding duplicates
             update_firewall_rules(blacklisted_ips)
             update_last_fetch_time(fetch_count)  # Update the last fetch time and count
+        else:
+            logging.warning("No blacklisted IPs fetched. Skipping update.")
 
-    # Sleep for a bit before checking again, to avoid busy-waiting
-    time.sleep(600)  # Sleep for 10 minutes before checking again
-
+# Run the script in a loop
 if __name__ == "__main__":
-    main()
+    try:
+        while True:
+            main()
+            time.sleep(600)  # Sleep for 10 minutes before checking again
+    except KeyboardInterrupt:
+        logging.info("Script interrupted by user.")
+        sys.exit(0)
