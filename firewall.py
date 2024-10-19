@@ -8,6 +8,7 @@ import aiofiles
 import ipaddress
 import psutil
 from concurrent.futures import ThreadPoolExecutor
+from rate_limiter import rate_limiter
 
 # File paths
 RULES_FILE = "var/firewall/rules"
@@ -112,6 +113,12 @@ def packet_matches(src_ip, dst_ip, proto, dport, rules):
 # Process a packet in a thread
 def process_packet(packet, packet_data, rules):
     src_ip, dst_ip, proto, sport, dport = extract_packet_details(packet_data)
+    
+    # Call rate limiter to check if IP should be blocked
+    if not rate_limiter(src_ip):
+        asyncio.run(log_packet("Blocked due to DDoS", src_ip, dst_ip, proto, sport, dport))
+        packet.drop()  # Block packet
+        return
     if proto and packet_matches(src_ip, dst_ip, proto, dport, rules):
         asyncio.run(log_packet("Blocked", src_ip, dst_ip, proto, sport, dport))
         packet.drop()  # Block packet
