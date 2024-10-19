@@ -9,14 +9,14 @@ import ipaddress
 import psutil
 from concurrent.futures import ThreadPoolExecutor
 from rate_limiter import rate_limiter
+import sys
+sys.path.append('etc/firewall/')
+from config import CPU_THRESHOLD, MEMORY_THRESHOLD
 
 # File paths
 RULES_FILE = "var/firewall/rules"
 LOG_FILE = "var/firewall/log"
 
-# Define threshold limits
-CPU_THRESHOLD = 90  # for testing
-MEMORY_THRESHOLD = 90  # for testing
 
 # Log performance alerts
 async def log_alert(message):

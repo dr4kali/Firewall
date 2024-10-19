@@ -1,9 +1,8 @@
 import time
 from collections import defaultdict
-
-# Set rate limits (e.g., 100 requests per second)
-RATE_LIMIT = 100  # Allowed number of requests per second
-TIME_FRAME = 1  # Time frame in seconds
+import sys
+sys.path.append('etc/firewall/')
+from config import RATE_LIMIT, TIME_FRAME
 
 # Dictionary to store request counts per IP
 request_counts = defaultdict(lambda: {"count": 0, "start_time": time.time()})

@@ -2,7 +2,8 @@ import os
 import subprocess
 import time
 import sys
-import time
+sys.path.append(os.path.join(os.path.dirname(__file__), "etc/firewall"))
+import config
 
 def loading_animation(duration):
     spinner = ['|', '/', '-', '\\']
@@ -12,51 +13,44 @@ def loading_animation(duration):
         for frame in spinner:
             sys.stdout.write(f'\rLoading... {frame}')
             sys.stdout.flush()
-            time.sleep(0.1)  # Adjust the speed of the spinner here
+            time.sleep(0.1)
 
-    sys.stdout.write('\rLoading complete!   \n')  # Clear the line after loading
+    sys.stdout.write('\rLoading complete!   \n')
 
-
-# File to store the VPN config path
-VPN_CONFIG_FILE = "etc/vpn_config.txt"
-
-# Function to save the VPN path
 def save_vpn_path(vpn_path):
-    with open(VPN_CONFIG_FILE, "w") as config_file:
-        config_file.write(vpn_path)
+    # Update the config.py file with the new VPN path
+    with open("etc/firewall/config.py", "r") as file:
+        lines = file.readlines()
+    
+    with open("etc/firewall/config.py", "w") as file:
+        for line in lines:
+            if line.startswith("VPN_CONFIG_PATH ="):
+                file.write(f'VPN_CONFIG_PATH = "{vpn_path}"\n')
+            else:
+                file.write(line)
 
-# Function to load the VPN path
-def load_vpn_path():
-    if os.path.exists(VPN_CONFIG_FILE):
-        with open(VPN_CONFIG_FILE, "r") as config_file:
-            return config_file.read().strip()
-    return None
-
-# Function to get the VPN path from the user
 def get_vpn_path():
-    vpn_path = load_vpn_path()
+    vpn_path = config.VPN_CONFIG_PATH.strip()  # Using the imported config variable
     if vpn_path and os.path.exists(vpn_path):
         print(f"Using VPN file from saved configuration: {vpn_path}")
         return vpn_path
     else:
-        vpn_path = input("Please provide the correct path to your .ovpn file: ").strip()
-        if os.path.exists(vpn_path):
-            save_vpn_path(vpn_path)
-            return vpn_path
-        else:
-            print("ERROR: OVPN file not found!")
-            return get_vpn_path()
+        while True:
+            vpn_path = input("Please provide the correct path to your .ovpn file: ").strip()
+            if os.path.exists(vpn_path):
+                save_vpn_path(vpn_path)  # Save valid path to config.py
+                print(f"VPN path saved to config.py: {vpn_path}")
+                return vpn_path
+            else:
+                print("ERROR: OVPN file not found! Please try again.")
 
-# Check if OpenVPN is running
 def check_vpn():
     try:
         output = subprocess.check_output("pgrep openvpn", shell=True)
-        if output:
-            return True
+        return bool(output)
     except subprocess.CalledProcessError:
         return False
 
-# Start OpenVPN
 def start_vpn():
     vpn_path = get_vpn_path()
 
@@ -78,20 +72,17 @@ def start_vpn():
     else:
         print("Failed to start VPN.")
 
-# Stop OpenVPN
 def stop_vpn():
     print("Stopping OpenVPN...")
     os.system("sudo pkill -f openvpn")
     loading_animation(5)
     print("VPN stopped.")
 
-# Toggle VPN state
 def toggle_vpn():
     if check_vpn():
         stop_vpn()
     else:
         start_vpn()
 
-# Main function that runs the toggle_vpn without blocking the interactive shell
 if __name__ == "__main__":
-    toggle_vpn()
+    toggle_vpn()  # Toggle the VPN state

@@ -4,6 +4,9 @@ import time
 import os
 import logging
 from datetime import datetime, timedelta
+import sys
+sys.path.append('etc/firewall/')
+from config import API_KEY
 
 # File path for rules and last fetch time
 RULES_FILE = "var/firewall/rules"
@@ -19,7 +22,6 @@ logging.basicConfig(
 
 # AbuseIPDB API endpoint and configuration
 API_URL = 'https://api.abuseipdb.com/api/v2/blacklist'
-API_KEY = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 
 # Define query parameters (e.g., minimum confidence score)
 QUERYSTRING = {
